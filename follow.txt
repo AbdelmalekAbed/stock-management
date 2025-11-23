@@ -1,0 +1,18 @@
+1 - cd /home/abdou/Downloads/stock-management-main/gestion-stock-template
+
+2 - php -S localhost:8000
+
+3 - Open your browser and go to:
+http://localhost:8000
+
+4 - # Vérifier le status
+sudo systemctl status mysql
+
+# Si arrêté, démarrer
+sudo systemctl start mysql
+
+# Créer la DB (si elle n'existe pas)
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS gestion_des_stocks CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+# Importer le dump dans la DB
+mysql -u root -p gestion_des_stocks < /home/abdou/Downloads/stock-management-main/gestion_des_stocks.sql

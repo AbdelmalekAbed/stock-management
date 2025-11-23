@@ -1,0 +1,33 @@
+# User uploads
+gestion-stock-template/image/client/*
+!gestion-stock-template/image/client/.gitkeep
+gestion-stock-template/image/admin/*
+!gestion-stock-template/image/admin/.gitkeep
+gestion-stock-template/image/product/*
+!gestion-stock-template/image/product/.gitkeep
+gestion-stock-template/image/supplier/*
+!gestion-stock-template/image/supplier/.gitkeep
+gestion-stock-template/image/brand/*
+!gestion-stock-template/image/brand/.gitkeep
+gestion-stock-template/image/category/*
+!gestion-stock-template/image/category/.gitkeep
+
+# Generated files
+gestion-stock-template/facture/*.pdf
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
+*~
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*.tmp
+backup_*.sql
