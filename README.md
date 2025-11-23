@@ -102,19 +102,6 @@ A comprehensive web application for inventory and stock management built with PH
    - Admin Dashboard: http://localhost:8000/gestion-stock-template/index.php
    - Client Sign In: http://localhost:8000/gestion-stock-template/client_signin.php
 
-## Default Admin Credentials
-
-- **Super Admin**:
-  - Email: abdelmalek.abed321@gmail.com
-  - Password: 0000
-
-- **Regular Admin** (Haitam):
-  - Email: belcaida@email.com
-  - Password: 0000
-
-- **Regular Admin** (Mohamed-Amine):
-  - Email: benhima@email.com
-  - Password: 0000
 
 ## Project Structure
 
