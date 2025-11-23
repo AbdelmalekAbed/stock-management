@@ -29,7 +29,7 @@ A comprehensive web application for inventory and stock management built with PH
 
 ### Security Features
 - **Role-based Access Control**
-  - Super Admin (abdelmalek.abed321@gmail.com) - Full access including admin management
+  - Super Admin - Full access including admin management
   - Regular Admins - Access to all features except admin management
   - Clients - Access to storefront and personal profile
 - **Session Management** - Secure PHP sessions
