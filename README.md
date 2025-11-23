@@ -18,7 +18,7 @@ A comprehensive web application for inventory and stock management built with PH
 - **Supplier Management** - Track supplier information and purchases
 - **Category Management** - Organize products by categories
 - **Brand Management** - Manage product brands
-- **Admin Management** - Super admin can add/delete administrators (restricted to Abdelmalek only)
+- **Admin Management** - Super admin can add/delete administrators (restricted to one person only preferably)
 
 ### Client Storefront
 - **Public Shop** - Browse and purchase products
@@ -188,14 +188,6 @@ stock-management-main/
 - Edge
 - Modern browsers with JavaScript enabled
 
-## Contributing
-
-This project follows OOP, MVC, and SOLID principles. When contributing:
-1. Maintain the existing architecture
-2. Add proper error handling
-3. Include delete confirmations for destructive actions
-4. Test with both super admin and regular admin accounts
-5. Ensure responsive design compatibility
 
 
 ## Support
