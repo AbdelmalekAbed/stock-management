@@ -156,9 +156,6 @@ stock-management-main/
 └── README.md                        # This file
 ```
 
-## Currency Conversion
-
-The system uses MAD (Moroccan Dirham) as the base currency and displays values in TND (Tunisian Dinar) with a conversion rate of 0.32. Conversion functions are defined in `app_config.php`.
 
 ## Image Upload Requirements
 
