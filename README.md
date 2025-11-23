@@ -179,13 +179,6 @@ stock-management-main/
 - `contient_pr` - Sales order items
 - `est_compose` - Purchase order items
 
-## Development Notes
-
-- Passwords are currently stored in plain text (0000 for all default accounts)
-- Consider implementing password hashing for production
-- The system includes delete confirmations via `data-confirm-delete` attributes
-- All delete operations check for dependencies before removal
-- Super admin privileges are hardcoded to abdelmalek.abed321@gmail.com
 
 ## Browser Support
 
@@ -204,15 +197,10 @@ This project follows OOP, MVC, and SOLID principles. When contributing:
 4. Test with both super admin and regular admin accounts
 5. Ensure responsive design compatibility
 
-## License
-
-[Add your license information here]
 
 ## Support
 
-For issues or questions, please contact the development team.
+For issues or questions, please contact abdelmalek.abed321@gmail.com
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: November 23, 2025
