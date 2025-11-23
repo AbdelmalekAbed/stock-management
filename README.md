@@ -5,7 +5,7 @@ A comprehensive web application for inventory and stock management built with PH
 ## Features
 
 ### Admin Dashboard
-- **Real-time KPIs** with currency conversion (MAD → TND)
+- **Real-time KPIs** 
   - Total Purchases
   - Total Sales
   - Total Profit
