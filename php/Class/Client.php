@@ -20,24 +20,50 @@ class Client extends Personne {
         if (!defined('FAUX_MDP')) {
             define('FAUX_MDP', "mdp est incorrect");
         }
+        
+        // Check rate limiting
+        $rateLimitCheck = Security::checkLoginAttempts('client_' . $email);
+        if (!$rateLimitCheck['allowed']) {
+            Security::logError('Client login rate limit exceeded', ['email' => $email]);
+            return $rateLimitCheck['message'];
+        }
+        
         $client = Dao::clientByEmail($email);
         if (!$client) {
+            Security::recordFailedLogin('client_' . $email);
+            Security::logError('Client login failed: email not found', ['email' => $email]);
             return FAUX_EMAIL;
         }
-        if (!password_verify($mdp, $client['mdp'])) {
+        
+        // Verify password using Security class
+        if (Security::verifyPassword($mdp, $client['mdp'])) {
+            Security::resetLoginAttempts('client_' . $email);
+            session_regenerate_id(true);
+            Security::logError('Client login successful', ['email' => $email, 'client_id' => $client['id']]);
+            return $client;
+        } else {
+            Security::recordFailedLogin('client_' . $email);
+            Security::logError('Client login failed: incorrect password', ['email' => $email]);
             return FAUX_MDP;
         }
-        return $client;
     }
 
     // Register new client
     public static function register($nom, $prenom, $email, $mdp, $adr = '', $tele = '', $image = './image/client/default.png') {
+        // Validate input
+        if (!Security::validateEmail($email)) {
+            return false;
+        }
+        
         // Check if email already exists
         $existing = Dao::clientByEmail($email);
         if ($existing) {
             return false; // Email already registered
         }
-        return Dao::registerClient($nom, $prenom, $email, $mdp, $adr, $tele, $image);
+        
+        // Hash password before storing
+        $hashedPassword = Security::hashPassword($mdp);
+        return Dao::registerClient($nom, $prenom, $email, $hashedPassword, $adr, $tele, $image);
     }
 
     // Update profile
@@ -47,7 +73,8 @@ class Client extends Personne {
 
     // Change password
     public static function changePassword($id, $newPassword) {
-        Dao::updateClientPassword($id, $newPassword);
+        $hashedPassword = Security::hashPassword($newPassword);
+        Dao::updateClientPassword($id, $hashedPassword);
     }
 
     // Get client orders

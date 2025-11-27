@@ -27,13 +27,21 @@ A comprehensive web application for inventory and stock management built with PH
 - **Profile Management** - Edit personal information and profile picture
 - **Product Details** - View detailed product information with enlarged quantity selector
 
-### Security Features
+### Security Features ✨ NEW
+- **Password Hashing** - Bcrypt with cost factor 12
+- **CSRF Protection** - Secure tokens on all forms
+- **Rate Limiting** - 5 attempts, 15-minute lockout
+- **Session Security** - Timeout, regeneration, hijacking prevention
+- **Input Validation** - Email, phone, and data sanitization
+- **File Upload Security** - Type validation, size limits, secure naming
+- **SQL Injection Prevention** - Prepared statements throughout
+- **Error Logging** - Comprehensive logging without exposing details
 - **Role-based Access Control**
-  - Super Admin - Full access including admin management
+  - Super Admin (database-driven) - Full access including admin management
   - Regular Admins - Access to all features except admin management
   - Clients - Access to storefront and personal profile
-- **Session Management** - Secure PHP sessions
-- **Delete Confirmations** - JavaScript confirmations prevent accidental deletions
+- **Security Headers** - XSS, clickjacking, MIME sniffing protection
+- **Environment Config** - Sensitive data in .env file
 
 ## Technology Stack
 
@@ -57,12 +65,34 @@ A comprehensive web application for inventory and stock management built with PH
 
 ## Installation
 
-### Prerequisites
+### Quick Start (Recommended)
+
+For new installations with security features:
+
+```bash
+# Clone the repository
+git clone <repository-url> stock-management-main
+cd stock-management-main
+
+# Run the automated migration script
+./migrate.sh
+```
+
+The script will:
+- Create `.env` configuration file
+- Backup your database
+- Run security migrations
+- Hash existing passwords
+- Set up logging
+
+### Manual Installation
+
+#### Prerequisites
 - PHP 8.0 or higher
 - MySQL 5.7 or higher / MariaDB 10.4 or higher
 - Web server (Apache/Nginx) or PHP built-in server
 
-### Setup Instructions
+#### Step-by-Step
 
 1. **Clone the repository**
    ```bash
@@ -71,36 +101,53 @@ A comprehensive web application for inventory and stock management built with PH
    cd stock-management-main
    ```
 
-2. **Import the database**
+2. **Configure environment**
+   ```bash
+   cp .env.example .env
+   nano .env  # Update with your database credentials
+   ```
+
+3. **Import the database**
    ```bash
    mysql -u root -p < gestion_des_stocks.sql
    ```
-   Or use phpMyAdmin to import `gestion_des_stocks.sql`
 
-3. **Configure database connection**
-   Edit the database credentials in `/php/Class/Dao.php`:
-   ```php
-   private $servername = "localhost";
-   private $username = "root";
-   private $password = "your_password";
-   private $dbname = "gestion_des_stocks";
-   ```
-
-4. **Set up file permissions**
+4. **Run security migrations**
    ```bash
-   chmod -R 755 gestion-stock-template/image/
-   chmod -R 755 gestion-stock-template/facture/
+   # Add security features to database
+   mysql -u root -p gestion_des_stocks < migrations/001_security_migration.sql
+   
+   # Migrate passwords to hashed format
+   php migrations/migrate_passwords.php
+   
+   # Delete migration script for security
+   rm migrations/migrate_passwords.php
    ```
 
-5. **Start the server**
+5. **Set up file permissions**
+   ```bash
+   chmod 600 .env
+   chmod -R 775 gestion-stock-template/image/
+   chmod -R 775 gestion-stock-template/facture/
+   chmod -R 775 logs/
+   ```
+
+6. **Start the server**
    ```bash
    php -S localhost:8000
    ```
 
-6. **Access the application**
+7. **Access the application**
    - Landing Page: http://localhost:8000
    - Admin Dashboard: http://localhost:8000/gestion-stock-template/index.php
    - Client Sign In: http://localhost:8000/gestion-stock-template/client_signin.php
+
+### 📚 Additional Documentation
+
+- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Step-by-step security migration
+- **[SECURITY.md](SECURITY.md)** - Comprehensive security features overview
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Production deployment guide
+- **[TODO.md](TODO.md)** - Remaining tasks and priorities
 
 
 ## Project Structure
@@ -160,10 +207,15 @@ stock-management-main/
 ## Image Upload Requirements
 
 - **Supported formats**: JPG, JPEG, PNG, GIF
-- **Client photos**: Uploaded to `gestion-stock-template/image/client/`
-- **Admin photos**: Uploaded to `gestion-stock-template/image/admin/`
-- **Product images**: Uploaded to `gestion-stock-template/image/product/`
-- **Maximum file size**: Default PHP upload limits apply
+- **Maximum file size**: 5MB (configurable in .env)
+- **Security**: MIME type validation, secure filename generation
+- **Storage locations**:
+  - Client photos: `gestion-stock-template/image/client/`
+  - Admin photos: `gestion-stock-template/image/admin/`
+  - Product images: `gestion-stock-template/image/product/`
+  - Category images: `gestion-stock-template/image/category/`
+  - Brand logos: `gestion-stock-template/image/brand/`
+  - Supplier photos: `gestion-stock-template/image/supplier/`
 
 ## Database Schema
 

@@ -1,14 +1,31 @@
 <?php
 
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../security.php';
+
 class Dao {
     // Pour la conexion avec DB
     public static function getPDO() {
         try {
-                // Forcer la connexion via TCP to éviter les problèmes de chemin de socket
-                $pdo = new \PDO('mysql:host=127.0.0.1;port=3306;dbname=gestion_des_stocks;charset=utf8mb4', "root", "Abdou_pass0");
+                // Use configuration from config.php
+                $pdo = new \PDO(
+                    'mysql:host=' . DB_HOST . ';port=3306;dbname=' . DB_NAME . ';charset=utf8mb4',
+                    DB_USER,
+                    DB_PASS,
+                    [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_EMULATE_PREPARES => false
+                    ]
+                );
             return $pdo;
-        } catch (\Throwable) {
-            exit("<b>ERREUR :</b> dans la conexion avec la DB"); // Stoper l'execution de programme est afficher le message celle dans exit function
+        } catch (\PDOException $e) {
+            Security::logError("Database connection failed: " . $e->getMessage());
+            if (APP_DEBUG) {
+                exit("<b>ERREUR :</b> dans la conexion avec la DB: " . $e->getMessage());
+            } else {
+                exit("<b>ERREUR :</b> dans la conexion avec la DB");
+            }
         }
     }
 
@@ -56,11 +73,12 @@ class Dao {
     }
 
     // ajouter un nouveau admin
-    public static function ajouterAdmin($nom, $prenom, $adr, $tele, $email, $mdp, $image, $nom_de_class) {
+    public static function ajouterAdmin($nom, $prenom, $adr, $tele, $email, $mdp, $image, $nom_de_class, $isSuperAdmin = false) {
         $pdo = Dao::getPDO();
         $nomTable = strtolower($nom_de_class);
-        $sql = "INSERT INTO `{$nomTable}`(nom,prenom,adr,tele,email,mdp,image) VALUES (?,?,?,?,?,?,?)";
-        $pdo->prepare($sql)->execute([$nom, $prenom, $adr, $tele, $email, $mdp, $image]);
+        $superAdminFlag = $isSuperAdmin ? 1 : 0;
+        $sql = "INSERT INTO `{$nomTable}`(nom,prenom,adr,tele,email,is_super_admin,mdp,image) VALUES (?,?,?,?,?,?,?,?)";
+        $pdo->prepare($sql)->execute([$nom, $prenom, $adr, $tele, $email, $superAdminFlag, $mdp, $image]);
     }
 
     // Modifier un Admin

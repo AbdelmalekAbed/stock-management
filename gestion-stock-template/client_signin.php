@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once(__DIR__ . '/../security.php');
 require_once(__DIR__ . '/app_config.php');
 require_once(__DIR__ . "/../php/Class/Admin.php");
 require_once(__DIR__ . "/../php/Class/Client.php");
@@ -17,7 +17,10 @@ if (isset($_SESSION['client'])) {
 // Handle login
 $errorCode = null;
 if (isset($_POST['login'])) {
-    $email = trim($_POST['email'] ?? '');
+    // Validate CSRF token
+    Security::checkCSRF();
+    
+    $email = Security::sanitizeInput(trim($_POST['email'] ?? ''));
     $mdp = $_POST['mdp'] ?? '';
 
     // Attempt admin authentication first
@@ -79,6 +82,7 @@ $loginMessage = $_GET['message'] ?? '';
             <div class="login-wrapper">
                 <div class="login-content">
                     <form class="login-userset" method="post" action="">
+                        <?php echo Security::getCSRFField(); ?>
                         <div class="login-logo">
                             <img src="assets/img/logo.png" alt="img">
                         </div>

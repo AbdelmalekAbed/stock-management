@@ -27,13 +27,17 @@ class Admin extends Personne {
     }
 
     // ajouter un nouveau admin
-    public function AjouterAdmin($nom_de_class) {
-        Dao::ajouterAdmin($this->nom, $this->prenom, $this->adr, $this->tele, $this->email, $this->mdp, $this->image, $nom_de_class);
+    public function AjouterAdmin($nom_de_class, $isSuperAdmin = false) {
+        // Hash password before storing
+        $hashedPassword = Security::hashPassword($this->mdp);
+        Dao::ajouterAdmin($this->nom, $this->prenom, $this->adr, $this->tele, $this->email, $hashedPassword, $this->image, $nom_de_class, $isSuperAdmin);
     }
 
     // Modifier les donnes sauf l'image d'admin
     public static function modifierAdmin($id, $nom, $prenom, $adr, $tele, $email, $mdp, $nom_de_class) {
-        Dao::modifierAdmin($id, $nom, $prenom, $adr, $tele, $email, $mdp, $nom_de_class);
+        // Hash password if it's being changed
+        $hashedPassword = (!empty($mdp) && strlen($mdp) < 60) ? Security::hashPassword($mdp) : $mdp;
+        Dao::modifierAdmin($id, $nom, $prenom, $adr, $tele, $email, $hashedPassword, $nom_de_class);
     }
 
     // Modifier l'image d'admin
@@ -49,8 +53,16 @@ class Admin extends Personne {
     // pour tester si email exitse et mdp correcte
     public static function estAdmin($email, $mdp) {
         // pour declarer les constantes en cas d'echec
-        define("FAUX_EMAIL", "email n'existe pas");
-        define("FAUX_MDP", "mdp est incorrect");
+        if (!defined('FAUX_EMAIL')) define("FAUX_EMAIL", "email n'existe pas");
+        if (!defined('FAUX_MDP')) define("FAUX_MDP", "mdp est incorrect");
+        
+        // Check rate limiting
+        $rateLimitCheck = Security::checkLoginAttempts($email);
+        if (!$rateLimitCheck['allowed']) {
+            Security::logError('Login rate limit exceeded', ['email' => $email]);
+            return $rateLimitCheck['message'];
+        }
+        
         /*
         poour tester si un admin AVEC cet email existe
         si oui la methode returne un tableau associative contient toutes les donnes de cet admin
@@ -58,6 +70,8 @@ class Admin extends Personne {
         */
         $admin = Dao::adminExiste($email);
         if ($admin === false) {
+            Security::recordFailedLogin($email);
+            Security::logError('Admin login failed: email not found', ['email' => $email]);
             return FAUX_EMAIL;
         }
         /*
@@ -65,9 +79,19 @@ class Admin extends Personne {
         sinon return FAUX_MDP
         */
 
-        if (strcmp($mdp, $admin['mdp']) === 0) {
+        // Use password_verify for hashed passwords
+        if (Security::verifyPassword($mdp, $admin['mdp'])) {
+            // Reset login attempts on successful login
+            Security::resetLoginAttempts($email);
+            
+            // Regenerate session ID for security
+            session_regenerate_id(true);
+            
+            Security::logError('Admin login successful', ['email' => $email, 'admin_id' => $admin['id']]);
             return $admin;
         } else {
+            Security::recordFailedLogin($email);
+            Security::logError('Admin login failed: incorrect password', ['email' => $email]);
             return FAUX_MDP;
         }
     }

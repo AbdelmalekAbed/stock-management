@@ -1,72 +1,81 @@
 <?php
-session_start();
+require_once(__DIR__ . '/../security.php');
 require_once(__DIR__ . '/app_config.php');
 require_once(__DIR__ . "/../php/Class/Client.php");
 
 // Handle registration
 if (isset($_POST['register'])) {
+    // Validate CSRF token
+    Security::checkCSRF();
+    
     extract($_POST);
 
+    // Sanitize inputs
+    $nom = Security::sanitizeInput($nom ?? '');
+    $prenom = Security::sanitizeInput($prenom ?? '');
+    $email = Security::sanitizeInput($email ?? '');
+    $adr = Security::sanitizeInput($adr ?? '');
+    $tele = Security::sanitizeInput($tele ?? '');
+    
     // Validate inputs
     $errors = [];
 
     if (empty($nom) || empty($prenom)) {
         $errors[] = "Name and surname are required.";
     }
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    if (!Security::validateEmail($email)) {
         $errors[] = "Invalid email address.";
     }
-    if (strlen($mdp) < 6) {
-        $errors[] = "Password must be at least 6 characters.";
+    if (strlen($mdp) < 8) {
+        $errors[] = "Password must be at least 8 characters.";
     }
     if ($mdp !== $confirm_mdp) {
         $errors[] = "Passwords do not match.";
     }
+    if (!empty($tele) && !Security::validatePhone($tele)) {
+        $errors[] = "Invalid phone number format (10 digits required).";
+    }
 
     $imagePath = './image/client/default.png';
 
-    // Handle optional profile image upload
+    // Handle optional profile image upload with enhanced security
     if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] !== UPLOAD_ERR_NO_FILE) {
-        if ($_FILES['profile_image']['error'] === UPLOAD_ERR_OK) {
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-            $ext = strtolower(pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION));
+        $validation = Security::validateImageUpload($_FILES['profile_image']);
+        
+        if (!$validation['valid']) {
+            $errors = array_merge($errors, $validation['errors']);
+        } else {
+            $newFilename = Security::generateSecureFilename('client', $validation['extension']);
+            $uploadDirectory = __DIR__ . '/image/client/';
 
-            if (!in_array($ext, $allowedExtensions, true)) {
-                $errors[] = "Profile photo must be a JPG, JPEG, PNG or GIF file.";
-            } else {
-                $newFilename = 'client_' . time() . '_' . mt_rand(1000, 9999) . '.' . $ext;
-                $uploadDirectory = __DIR__ . '/image/client/';
-
-                if (!is_dir($uploadDirectory)) {
-                    if (!mkdir($uploadDirectory, 0755, true)) {
-                        $errors[] = "Unable to prepare upload directory.";
-                    }
-                }
-
-                if (empty($errors)) {
-                    $uploadPath = $uploadDirectory . $newFilename;
-
-                    if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $uploadPath)) {
-                        $imagePath = './image/client/' . $newFilename;
-                    } else {
-                        $errors[] = "Failed to upload profile photo. Please try again.";
-                    }
+            if (!is_dir($uploadDirectory)) {
+                if (!mkdir($uploadDirectory, 0755, true)) {
+                    $errors[] = "Unable to prepare upload directory.";
                 }
             }
-        } else {
-            $errors[] = "Unexpected error while uploading profile photo.";
+
+            if (empty($errors)) {
+                $uploadPath = $uploadDirectory . $newFilename;
+
+                if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $uploadPath)) {
+                    $imagePath = './image/client/' . $newFilename;
+                } else {
+                    $errors[] = "Failed to upload profile photo. Please try again.";
+                    Security::logError('File upload failed', ['filename' => $newFilename]);
+                }
+            }
         }
     }
 
     if (empty($errors)) {
-        $result = Client::register($nom, $prenom, $email, $mdp, $adr ?? '', $tele ?? '', $imagePath);
+        $result = Client::register($nom, $prenom, $email, $mdp, $adr, $tele, $imagePath);
 
         if ($result === false) {
             $errors[] = "Email already registered. Please sign in instead.";
         } else {
             // Auto-login after registration
             $client = Client::estClient($email, $mdp);
-            if (isset($client['email'])) {
+            if (is_array($client) && isset($client['email'])) {
                 $_SESSION['client'] = $client;
                 header("Location: shop.php?message=welcome");
                 exit();
@@ -94,6 +103,7 @@ if (isset($_POST['register'])) {
             <div class="login-wrapper">
                 <div class="login-content">
                     <form class="login-userset" method="post" action="" enctype="multipart/form-data">
+                        <?php echo Security::getCSRFField(); ?>
                         <div class="login-logo">
                             <img src="assets/img/logo.png" alt="img">
                         </div>

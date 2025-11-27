@@ -31,3 +31,11 @@ Thumbs.db
 *.bak
 *.tmp
 backup_*.sql
+
+# Environment and sensitive files
+.env
+logs/
+*.log
+
+# Migration scripts (after running)
+migrations/migrate_passwords.php
