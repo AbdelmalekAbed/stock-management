@@ -82,13 +82,15 @@ if (LOG_ERRORS) {
     }
 }
 
-// Secure session configuration
-ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_secure', FORCE_HTTPS ? '1' : '0');
-ini_set('session.cookie_samesite', 'Strict');
-ini_set('session.use_strict_mode', '1');
-ini_set('session.use_only_cookies', '1');
-ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
+// Secure session configuration (only if session not started)
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', '1');
+    ini_set('session.cookie_secure', FORCE_HTTPS ? '1' : '0');
+    ini_set('session.cookie_samesite', 'Strict');
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
+    ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
+}
 
 // Timezone
 date_default_timezone_set('Africa/Tunis');
