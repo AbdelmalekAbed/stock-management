@@ -1,6 +1,9 @@
 <?php
+// Activer l'affichage des erreurs pour debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
-require_once(__DIR__ . '/app_config.php');
 
 // Require client login
 if (!isset($_SESSION['client'])) {
@@ -14,6 +17,8 @@ if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
     exit();
 }
 
+require_once(__DIR__ . '/app_config.php');
+
 require_once(__DIR__ . "/../php/Class/Product.php");
 
 $client = $_SESSION['client'];
@@ -24,36 +29,75 @@ foreach ($_SESSION['cart'] as $item) {
     $cartTotal += $item['prix_uni'] * $item['quantity'];
 }
 
+$errors = [];
+
 // Handle checkout submission
-if (isset($_POST['place_order'])) {
-    $delivery_address = trim($_POST['delivery_address']);
-    $payment_method = $_POST['payment_method'];
-    
-    $errors = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
+    $delivery_address = trim($_POST['delivery_address'] ?? '');
+    $payment_method = $_POST['payment_method'] ?? '';
     
     if (empty($delivery_address)) {
         $errors[] = "Delivery address is required.";
     }
     
-    if (!in_array($payment_method, ['card', 'on_arrival'])) {
-        $errors[] = "Invalid payment method.";
+    if (empty($payment_method)) {
+        $errors[] = "Please select a payment method.";
+    } elseif (!in_array($payment_method, ['card', 'on_arrival'])) {
+        $errors[] = "Invalid payment method selected.";
     }
     
     if (empty($errors)) {
-        // Store checkout data in session for next step
-        $_SESSION['checkout_data'] = [
-            'delivery_address' => $delivery_address,
-            'payment_method' => $payment_method,
-            'total' => $cartTotal
-        ];
-        
-        // Redirect based on payment method
-        if ($payment_method === 'card') {
-            header('Location: payment_card.php');
+        // Pour Cash on Delivery, créer la commande directement
+        if ($payment_method === 'on_arrival') {
+            require_once(__DIR__ . "/../php/Class/Dao.php");
+            
+            try {
+                // Créer la commande
+                $num_com = Dao::createClientOrder(
+                    $client['id'],
+                    $delivery_address,
+                    $payment_method,
+                    $cartTotal
+                );
+                
+                // Ajouter les produits et mettre à jour le stock
+                foreach ($_SESSION['cart'] as $item) {
+                    Dao::prSale($item['num_pr'], $num_com, $item['quantity'], $item['prix_uni']);
+                    Dao::deleteQty($item['num_pr'], $item['quantity']);
+                }
+                
+                // Sauvegarder les infos pour la page de confirmation
+                $_SESSION['order_completed'] = [
+                    'num_com' => $num_com,
+                    'total' => $cartTotal,
+                    'payment_method' => $payment_method,
+                    'payment_status' => 'completed', // Mark as completed for cash on delivery
+                    'delivery_address' => $delivery_address,
+                    'items' => $_SESSION['cart'],
+                    'message' => 'Order placed successfully! Pay on delivery.'
+                ];
+                
+                // Vider le panier
+                unset($_SESSION['cart']);
+                unset($_SESSION['checkout_data']);
+                
+                // Rediriger vers la page de confirmation
+                header('Location: order_success.php');
+                exit();
+                
+            } catch (Exception $e) {
+                $errors[] = "Erreur lors de la création de la commande: " . $e->getMessage();
+            }
         } else {
-            header('Location: process_order.php');
+            // Pour paiement par carte
+            $_SESSION['checkout_data'] = [
+                'delivery_address' => $delivery_address,
+                'payment_method' => $payment_method,
+                'total' => $cartTotal
+            ];
+            header('Location: payment_card.php');
+            exit();
         }
-        exit();
     }
 }
 ?>
@@ -187,11 +231,27 @@ if (isset($_POST['place_order'])) {
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+        
+        <?php if (isset($success_message)): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <h4 class="alert-heading">✓ TEST SUCCESS!</h4>
+                <p><strong><?= htmlspecialchars($success_message) ?></strong></p>
+                <hr>
+                <p class="mb-0">PHP code is working! Form data received:</p>
+                <ul>
+                    <li>Address: <?= htmlspecialchars($delivery_address) ?></li>
+                    <li>Payment: <?= htmlspecialchars($payment_method) ?></li>
+                    <li>Total: <?= format_price($cartTotal) ?></li>
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
 
         <div class="row">
             <!-- Checkout Form -->
             <div class="col-lg-8">
                 <form method="POST" action="" id="checkoutForm">
+                    
                     <!-- Delivery Information -->
                     <div class="checkout-section">
                         <h5 class="mb-3"><i class="fas fa-truck"></i> Delivery Information</h5>
@@ -229,17 +289,17 @@ if (isset($_POST['place_order'])) {
                     <div class="checkout-section">
                         <h5 class="mb-3"><i class="fas fa-credit-card"></i> Payment Method</h5>
                         
-                        <div class="payment-option" onclick="selectPayment('card')">
+                        <div class="payment-option">
                             <input type="radio" name="payment_method" value="card" id="payment_card" required>
-                            <label for="payment_card" class="mb-0">
+                            <label for="payment_card" class="mb-0 w-100" style="cursor: pointer;">
                                 <strong><i class="fas fa-credit-card"></i> Credit/Debit Card</strong>
                                 <p class="text-muted mb-0 mt-2">Pay securely with your credit or debit card</p>
                             </label>
                         </div>
 
-                        <div class="payment-option" onclick="selectPayment('on_arrival')">
+                        <div class="payment-option">
                             <input type="radio" name="payment_method" value="on_arrival" id="payment_arrival" required>
-                            <label for="payment_arrival" class="mb-0">
+                            <label for="payment_arrival" class="mb-0 w-100" style="cursor: pointer;">
                                 <strong><i class="fas fa-money-bill-wave"></i> Cash on Delivery</strong>
                                 <p class="text-muted mb-0 mt-2">Pay when you receive your order</p>
                             </label>
@@ -302,26 +362,44 @@ if (isset($_POST['place_order'])) {
     <script src="assets/js/jquery-3.6.0.min.js"></script>
     <script src="assets/js/bootstrap.bundle.min.js"></script>
     <script>
-        function selectPayment(method) {
+        // Handle payment option selection
+        document.querySelectorAll('.payment-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                // Don't interfere if clicking the radio or label directly
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') {
+                    return;
+                }
+                
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                    updatePaymentSelection();
+                }
+            });
+        });
+
+        // Handle radio button changes
+        document.querySelectorAll('.payment-option input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                updatePaymentSelection();
+            });
+        });
+
+        function updatePaymentSelection() {
             // Remove all selected classes
             document.querySelectorAll('.payment-option').forEach(el => {
                 el.classList.remove('selected');
             });
             
-            // Select the radio button
-            const radio = document.getElementById('payment_' + method);
-            radio.checked = true;
-            
-            // Add selected class to parent
-            radio.closest('.payment-option').classList.add('selected');
+            // Add selected class to the checked option
+            const checkedRadio = document.querySelector('.payment-option input[type="radio"]:checked');
+            if (checkedRadio) {
+                checkedRadio.closest('.payment-option').classList.add('selected');
+            }
         }
 
-        // Auto-select if clicked
-        document.querySelectorAll('.payment-option input[type="radio"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                selectPayment(this.value);
-            });
-        });
+        // Initialize on page load
+        updatePaymentSelection();
     </script>
 </body>
 </html>

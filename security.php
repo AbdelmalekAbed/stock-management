@@ -3,7 +3,12 @@
  * Security utilities - CSRF protection, session management, rate limiting
  */
 
-require_once __DIR__ . '/config.php';
+// Load InfinityFree config if available, otherwise use standard config
+if (file_exists(__DIR__ . '/config_infinityfree.php')) {
+    require_once __DIR__ . '/config_infinityfree.php';
+} elseif (file_exists(__DIR__ . '/config.php')) {
+    require_once __DIR__ . '/config.php';
+}
 
 class Security {
     
@@ -184,10 +189,10 @@ class Security {
     }
     
     /**
-     * Validate phone number
+     * Validate phone number (Tunisia: 8 digits)
      */
     public static function validatePhone($phone) {
-        return preg_match('/^[0-9]{10}$/', $phone);
+        return preg_match('/^[0-9]{8}$/', $phone);
     }
     
     /**
@@ -240,7 +245,10 @@ class Security {
         
         // Check file extension
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, ALLOWED_IMAGE_TYPES)) {
+        $allowedExtensions = is_array(ALLOWED_IMAGE_TYPES) 
+            ? ALLOWED_IMAGE_TYPES 
+            : explode(',', ALLOWED_IMAGE_TYPES);
+        if (!in_array($ext, $allowedExtensions)) {
             $errors[] = 'Invalid file extension.';
         }
         
@@ -301,7 +309,9 @@ class Security {
      * Hash password
      */
     public static function hashPassword($password) {
-        return password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+        // Use cost 10 for compatibility with free hosting (InfinityFree)
+        // Cost 10 is still secure and recommended by OWASP
+        return password_hash($password, PASSWORD_BCRYPT, ['cost' => 10]);
     }
     
     /**

@@ -1,5 +1,7 @@
 # Stock Management System
 
+🌐 **Live Demo**: [https://abdou-store.lovestoblog.com](https://abdou-store.lovestoblog.com)
+
 A comprehensive web application for inventory and stock management built with PHP and MySQL, featuring both admin and customer interfaces with role-based access control.
 
 ## Features

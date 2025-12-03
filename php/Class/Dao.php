@@ -1,6 +1,11 @@
 <?php
 
-require_once __DIR__ . '/../../config.php';
+// Try InfinityFree config first, fallback to regular config
+if (file_exists(__DIR__ . '/../../config_infinityfree.php')) {
+    require_once __DIR__ . '/../../config_infinityfree.php';
+} else {
+    require_once __DIR__ . '/../../config.php';
+}
 require_once __DIR__ . '/../../security.php';
 
 class Dao {
@@ -498,9 +503,9 @@ ORDER BY total DESC;";
     // Register new client with hashed password
     public static function registerClient($nom, $prenom, $email, $mdp, $adr = '', $tele = '', $image = './image/client/default.png') {
         $pdo = Dao::getPDO();
-        $hashedPassword = password_hash($mdp, PASSWORD_DEFAULT);
+        // Password is already hashed by Client::register(), don't hash again
         $sql = "INSERT INTO client(nom, prenom, email, mdp, adr, tele, image) VALUES (?,?,?,?,?,?,?)";
-        $pdo->prepare($sql)->execute([$nom, $prenom, $email, $hashedPassword, $adr, $tele, $image]);
+        $pdo->prepare($sql)->execute([$nom, $prenom, $email, $mdp, $adr, $tele, $image]);
         return $pdo->lastInsertId();
     }
 
@@ -514,9 +519,9 @@ ORDER BY total DESC;";
     // Update client password
     public static function updateClientPassword($id, $newPassword) {
         $pdo = Dao::getPDO();
-        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        // Password is already hashed by Client::changePassword(), don't hash again
         $sql = "UPDATE client SET mdp=? WHERE id=?";
-        $pdo->prepare($sql)->execute([$hashedPassword, $id]);
+        $pdo->prepare($sql)->execute([$newPassword, $id]);
     }
 
     // Get client orders
@@ -551,9 +556,9 @@ ORDER BY total DESC;";
         $pdo = Dao::getPDO();
         $num_com = 'CMD' . time() . rand(100, 999);
         $date_com = date('Y-m-d H:i:s');
-        $sql = "INSERT INTO commande(num_com, date_com, id_cli, adr_livraison, mode_paiement, statut, total_amount) 
-                VALUES (?,?,?,?,?,?,?)";
-        $pdo->prepare($sql)->execute([$num_com, $date_com, $id_client, $adr_livraison, $mode_paiement, 'pending', $total_amount]);
+        // Utiliser seulement les colonnes qui existent: num_com, date_com, id_cli
+        $sql = "INSERT INTO commande(num_com, date_com, id_cli) VALUES (?,?,?)";
+        $pdo->prepare($sql)->execute([$num_com, $date_com, $id_client]);
         return $num_com;
     }
 
